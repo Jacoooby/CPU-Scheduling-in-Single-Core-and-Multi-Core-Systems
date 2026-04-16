@@ -1,0 +1,8 @@
+# Output
+out/
+
+# IntelliJ
+.idea/
+
+# Module files
+*.iml
