@@ -1,3 +1,9 @@
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 // Begin code changes by Jacob Berard
 public class Main {
     public static void main(String[] args) {
@@ -111,12 +117,83 @@ public class Main {
 
     // placeholder for task 1
     public static void startSingleCoreTask(int algorithm, Integer quantum) {
-        System.out.println("Starting Task 1");
+        SchedulerType schedulerType = SchedulerType.fromCode(algorithm);
+
+        SimulationLogger.printSchedulerSelection(schedulerType, quantum);
+
+        boolean useFixedReportWorkload = false;
+
+        List<SimTask> allTasks;
+        if (useFixedReportWorkload) {
+            allTasks = WorkloadGenerator.generateFixedTasks(
+                    new int[]{18, 7, 25, 42, 21},
+                    schedulerType
+            );
+        } else {
+            allTasks = WorkloadGenerator.generateRandomTasks(schedulerType);
+        }
+
+        ReadyQueue readyQueue = new ReadyQueue();
+        List<SimTask> pendingTasks = new ArrayList<>();
+        Map<Integer, TaskWorker> workers = new HashMap<>();
+
+        SimulationLogger.printThreadCount(allTasks.size());
+
+        for (SimTask task : allTasks) {
+            SimulationLogger.printMainCreatesProcess(task.getId());
+
+            TaskWorker worker = new TaskWorker(task);
+            workers.put(task.getId(), worker);
+            worker.start();
+
+            if (task.getArrivalTime() == 0) {
+                task.setState(ProcessState.READY);
+                readyQueue.addTask(task);
+            } else {
+                pendingTasks.add(task);
+            }
+        }
+
+        readyQueue.printQueue();
+
+        SimulationLogger.printMainForksDispatcher(0);
+
+        SchedulerStrategy scheduler = SchedulerFactory.create(schedulerType, quantum);
+        CPU cpu = new CPU(0);
+
+        SingleCoreDispatcher dispatcher = new SingleCoreDispatcher(
+                0,
+                cpu,
+                readyQueue,
+                pendingTasks,
+                workers,
+                scheduler,
+                allTasks.size()
+        );
+
+        dispatcher.start();
+
+        try {
+            dispatcher.join();
+            joinWorkers(workers.values());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.out.println("Main thread interrupted.");
+        }
+
+        SimulationLogger.printMainExit();
     }
+
 
     // placeholder for task 2
     public static void startMultiCoreTask(int algorithm, Integer quantum, int cores) {
         System.out.println("Starting Task 2");
+    }
+
+    private static void joinWorkers(Collection<TaskWorker> workers) throws InterruptedException {
+        for (TaskWorker worker : workers) {
+            worker.join();
+        }
     }
 }
 // End code changes by Jacob Berard
