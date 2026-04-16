@@ -1,5 +1,7 @@
 # Output
 out/
+src/out/
+*.class
 
 # IntelliJ
 .idea/
