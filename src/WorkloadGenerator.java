@@ -5,6 +5,8 @@ import java.util.Random;
 public class WorkloadGenerator {
     private static final Random RANDOM = new Random();
 
+    // generates a random number for taskCount (1-25) and burst times (1-50)
+    // for PSJF, tasks are given random arrival times so some arrive after the simulation has started
     public static List<SimTask> generateRandomTasks(SchedulerType schedulerType) {
         int taskCount = RANDOM.nextInt(25) + 1;
         List<SimTask> tasks = new ArrayList<>();
@@ -24,6 +26,8 @@ public class WorkloadGenerator {
             tasks.add(new SimTask(i, burst, arrivalTime));
         }
 
+        // PSJF requires at lease one late arrival to show preemption, if none were generated randomly,
+        // then the las task is forced to arrive at time 1
         if (schedulerType == SchedulerType.PSJF && taskCount > 1 && !hasLateArrival) {
             SimTask replacement = new SimTask(
                     tasks.get(taskCount - 1).getId(),
@@ -36,6 +40,8 @@ public class WorkloadGenerator {
         return tasks;
     }
 
+    // generates 5 tasks needed for the report with fixed burst times
+    // for PSJF, tasks 1-4 are given staggered arrival times to simulate late arrivals
     public static List<SimTask> generateFixedTasks(int[] bursts, SchedulerType schedulerType) {
         List<SimTask> tasks = new ArrayList<>();
 
