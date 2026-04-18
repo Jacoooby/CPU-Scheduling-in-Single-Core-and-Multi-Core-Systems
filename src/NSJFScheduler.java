@@ -4,6 +4,7 @@ import java.util.List;
 public class NSJFScheduler implements SchedulerStrategy {
     @Override
     public ScheduleDecision chooseNextTask(List<SimTask> readyTasks, SimTask currentTask, int currentTime) {
+        // if task is already running just let it finish
         if (currentTask != null && !currentTask.isFinished()) {
             return new ScheduleDecision(currentTask, currentTask.getRemainingBurst());
         }
@@ -12,11 +13,26 @@ public class NSJFScheduler implements SchedulerStrategy {
             return new ScheduleDecision(null, 0);
         }
 
-        SimTask selected = readyTasks.stream()
-                .min(Comparator.comparingInt(SimTask::getRemainingBurst)
-                        .thenComparingInt(SimTask::getArrivalTime)
-                        .thenComparingInt(SimTask::getId))
-                .orElse(null);
+        // pick the task with the shortest remaining burst, if there is a tie pick the one that arrived first,
+        // if there is still a tie pick the one with the smaller id
+        SimTask selected = null;
+        for (SimTask task : readyTasks) {
+            if (selected == null) {
+                selected = task;
+                continue;
+            }
+            if (task.getRemainingBurst() < selected.getRemainingBurst()) {
+                selected = task;
+            } else if (task.getRemainingBurst() == selected.getRemainingBurst()) {
+                if (task.getArrivalTime() < selected.getArrivalTime()) {
+                    selected = task;
+                } else if (task.getArrivalTime() == selected.getArrivalTime()) {
+                    if (task.getId() < selected.getId()) {
+                        selected = task;
+                    }
+                }
+            }
+        }
 
         if (selected == null) {
             return new ScheduleDecision(null, 0);

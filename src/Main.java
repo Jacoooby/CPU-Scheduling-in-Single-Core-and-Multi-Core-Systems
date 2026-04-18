@@ -115,12 +115,13 @@ public class Main {
         }
     }
 
-    // placeholder for task 1
     public static void startSingleCoreTask(int algorithm, Integer quantum) {
         SchedulerType schedulerType = SchedulerType.fromCode(algorithm);
 
         SimulationLogger.printSchedulerSelection(schedulerType, quantum);
 
+        // set to true for testing with specific burst times for report, set
+        // to false when turning in final version
         boolean useFixedReportWorkload = false;
 
         List<SimTask> allTasks;
@@ -146,10 +147,13 @@ public class Main {
             workers.put(task.getId(), worker);
             worker.start();
 
+            // tasks with arrival time 0 are added to ready queue
             if (task.getArrivalTime() == 0) {
                 task.setState(ProcessState.READY);
                 readyQueue.addTask(task);
             } else {
+                // tasks with later arrival times are held in pendingTasks until it is there time to be added
+                // back to ready queue
                 pendingTasks.add(task);
             }
         }
@@ -171,6 +175,8 @@ public class Main {
                 allTasks.size()
         );
 
+        // start timer for report runtime measures
+        long startTime= System.currentTimeMillis();
         dispatcher.start();
 
         try {
@@ -179,6 +185,14 @@ public class Main {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             System.out.println("Main thread interrupted.");
+        }
+
+        // calculate runtime for report
+        long endTime = System.currentTimeMillis();
+        long totalTime = endTime-startTime;
+        // only print runtime when running report workload
+        if (useFixedReportWorkload) {
+            System.out.println("Algorithm " + schedulerType + " completed with a runtime of " + totalTime + " ms.");
         }
 
         SimulationLogger.printMainExit();
