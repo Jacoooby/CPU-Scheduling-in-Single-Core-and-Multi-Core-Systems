@@ -3,6 +3,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 // Begin code changes by Jacob Berard
 public class Main {
@@ -99,7 +100,6 @@ public class Main {
             System.out.println("Cores: " + cores);
 
             if (cores == 1) {
-                startSingleCoreTask(algorithm, quantum);
             } else {
                 startMultiCoreTask(algorithm, quantum, cores);
             }
@@ -112,7 +112,8 @@ public class Main {
             System.out.println("  -S 3 to use Non-Preemptive shortest job first");
             System.out.println("  -S 4 to use Preemptive shortest job first");
             System.out.println("  -C <cores> can be added after any of the above to specify the number of cores (1-4) to use on a task.");
-        }
+       }
+
     }
 
     public static void startSingleCoreTask(int algorithm, Integer quantum) {
@@ -199,10 +200,66 @@ public class Main {
     }
 
 
-    // placeholder for task 2
+    // Begin code changes by Hunter Aden
     public static void startMultiCoreTask(int algorithm, Integer quantum, int cores) {
-        System.out.println("Starting Task 2");
+        if (algorithm == 4) {
+            System.out.println("Error: PSJF is not supported for multi-core mode.");
+            return;
+        }
+
+        SchedulerType schedulerType = SchedulerType.fromCode(algorithm);
+        SimulationLogger.printSchedulerSelection(schedulerType, quantum);
+
+        // Generate tasks
+        List<SimTask> allTasks = WorkloadGenerator.generateRandomTasks(SchedulerType.FCFS); // force arrivalTime=0
+
+        ReadyQueue readyQueue = new ReadyQueue();
+        Map<Integer, TaskWorker> workers = new HashMap<>();
+
+        SimulationLogger.printThreadCount(allTasks.size());
+
+        for (SimTask task : allTasks) {
+            SimulationLogger.printMainCreatesProcess(task.getId());
+            TaskWorker worker = new TaskWorker(task);
+            workers.put(task.getId(), worker);
+            worker.start();
+            task.setState(ProcessState.READY);
+            readyQueue.addTask(task);
+        }
+
+        readyQueue.printQueue();
+
+        AtomicInteger finishedCount = new AtomicInteger(0);
+        List<MultiCoreDispatcher> dispatchers = new ArrayList<>();
+
+        for (int i = 0; i < cores; i++) {
+            SimulationLogger.printMainForksDispatcher(i);
+            CPU cpu = new CPU(i);
+            SchedulerStrategy scheduler = SchedulerFactory.create(schedulerType, quantum);
+            MultiCoreDispatcher dispatcher = new MultiCoreDispatcher(
+                    i, cpu, readyQueue, workers, allTasks.size(), scheduler, finishedCount
+            );
+            dispatchers.add(dispatcher);
+        }
+
+        // Start all dispatchers together
+        for (MultiCoreDispatcher d : dispatchers) {
+            d.start();
+        }
+
+        try {
+            for (MultiCoreDispatcher d : dispatchers) {
+                d.join();
+            }
+            joinWorkers(workers.values());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.out.println("Main thread interrupted.");
+        }
+
+        SimulationLogger.printMainExit();
     }
+    // End code changes by Hunter Aden
 
     private static void joinWorkers(Collection<TaskWorker> workers) throws InterruptedException {
         for (TaskWorker worker : workers) {
