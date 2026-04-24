@@ -100,6 +100,7 @@ public class Main {
             System.out.println("Cores: " + cores);
 
             if (cores == 1) {
+                startSingleCoreTask(algorithm, quantum);
             } else {
                 startMultiCoreTask(algorithm, quantum, cores);
             }
@@ -113,7 +114,6 @@ public class Main {
             System.out.println("  -S 4 to use Preemptive shortest job first");
             System.out.println("  -C <cores> can be added after any of the above to specify the number of cores (1-4) to use on a task.");
        }
-
     }
 
     public static void startSingleCoreTask(int algorithm, Integer quantum) {
